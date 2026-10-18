@@ -1,0 +1,16 @@
+[project]
+name = "project2"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Егушев",email = "kirikott11@gmail.com"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard] (>=0.143.5,<0.144.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
