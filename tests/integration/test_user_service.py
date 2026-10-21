@@ -1,5 +1,4 @@
 import pytest
-from src.core.security import hash_password_async
 from src.domain.exceptions.user_exceptions import (
     UserNotFoundException,
     UserAlreadyExistsException,

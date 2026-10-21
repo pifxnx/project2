@@ -3,10 +3,7 @@ from unittest.mock import AsyncMock
 from sqlalchemy.exc import IntegrityError
 from src.domain.services.user_service import UserService
 from src.data.models.user import User
-from src.domain.exceptions.user_exceptions import (
-    UserAlreadyExistsException,
-    UserNotFoundException,
-)
+from src.domain.exceptions.user_exceptions import UserAlreadyExistsException
 
 
 async def test_create_user():
