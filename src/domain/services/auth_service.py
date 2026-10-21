@@ -1,6 +1,6 @@
 from jwt import InvalidTokenError
 from ...data.repositories.user_repo import UserRepo
-from ...core.security import verify_password
+from ...core.security import verify_password_async
 from ...core.jwt_token import (
     create_access_token,
     create_refresh_token,
@@ -18,7 +18,7 @@ class AuthService:
         if not user:
             raise InvalidCredentialsException()
 
-        is_valid = verify_password(password, user.hashed_password)
+        is_valid = await verify_password_async(password, user.hashed_password)
 
         if not is_valid:
             raise InvalidCredentialsException()

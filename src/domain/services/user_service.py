@@ -1,5 +1,5 @@
 from sqlalchemy.exc import IntegrityError
-from ...core.security import hash_password
+from ...core.security import hash_password_async
 from ...data.repositories.user_repo import UserRepo
 from ...data.models.user import User
 from ..exceptions.user_exceptions import (
@@ -14,7 +14,7 @@ class UserService:
 
     async def register_user(self, email, fullname, password, organization):
         try:
-            pwd = hash_password(password)
+            pwd = await hash_password_async(password)
             user = User(
                 email=email,
                 fullname=fullname,
