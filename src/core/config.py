@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     token_algorithm: str
     refresh_secret: str
     refresh_exp: int
+    minio_endpoint: str
+    minio_access_key: str
+    minio_secret_key: str
+    minio_secure: bool
 
     model_config = SettingsConfigDict(
         env_file=".env",

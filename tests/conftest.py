@@ -4,6 +4,7 @@ from sqlalchemy import text
 from src.core.database import Base
 from src.data.models.user import User
 from src.data.models.camera import Camera
+from src.data.models.video import Video
 from src.data.repositories.user_repo import UserRepo
 from src.data.repositories.camera_repo import CameraRepo
 from src.domain.services.user_service import UserService
@@ -35,7 +36,7 @@ async def db_session(engine):
 @pytest.fixture(autouse=True)
 async def truncate_db(db_session):
     await db_session.execute(
-        text("TRUNCATE TABLE users, cameras RESTART IDENTITY CASCADE;")
+        text("TRUNCATE TABLE users, cameras, videos RESTART IDENTITY CASCADE;")
     )
     await db_session.commit()
 

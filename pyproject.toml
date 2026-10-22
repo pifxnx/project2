@@ -15,7 +15,8 @@ dependencies = [
     "bcrypt (>=5.0.0,<6.0.0)",
     "pydantic-settings (>=2.16.0,<3.0.0)",
     "pytest (>=9.1.1,<10.0.0)",
-    "pytest-asyncio (>=1.4.0,<2.0.0)"
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "minio (>=7.2.20,<8.0.0)"
 ]
 
 

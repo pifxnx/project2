@@ -1,8 +1,13 @@
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import DateTime
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 from ...core.database import Base
+
+
+if TYPE_CHECKING:
+    from .video import Video
 
 
 class Camera(Base):
@@ -28,6 +33,9 @@ class Camera(Base):
     process_dttm: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )  # дата и время добавления записи в таблицу (техн.)
+    videos: Mapped[list["Video"]] = relationship(
+        back_populates="camera", passive_deletes=True
+    )
 
 
 #

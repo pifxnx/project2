@@ -11,6 +11,7 @@ from alembic import context
 from src.core.database import Base
 from src.data.models.user import User
 from src.data.models.camera import Camera
+from src.data.models.video import Video
 
 config = context.config
 
