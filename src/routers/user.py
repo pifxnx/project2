@@ -13,12 +13,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 async def register_user(
     user: UserCreate, user_service: UserService = Depends(get_user_service)
 ):
-    new_user = await user_service.register_user(
-        email=user.email,
-        fullname=user.fullname,
-        password=user.password,
-        organization=user.organization,
-    )
+    new_user = await user_service.register_user(user)
     return new_user
 
 

@@ -3,9 +3,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import text
 from src.core.database import Base
 from src.data.models.user import User
+from src.data.models.camera import Camera
 from src.data.repositories.user_repo import UserRepo
+from src.data.repositories.camera_repo import CameraRepo
 from src.domain.services.user_service import UserService
 from src.domain.services.auth_service import AuthService
+from src.domain.services.camera_service import CameraService
 
 
 @pytest.fixture(scope="session")
@@ -31,7 +34,9 @@ async def db_session(engine):
 
 @pytest.fixture(autouse=True)
 async def truncate_db(db_session):
-    await db_session.execute(text("TRUNCATE TABLE users RESTART IDENTITY CASCADE;"))
+    await db_session.execute(
+        text("TRUNCATE TABLE users, cameras RESTART IDENTITY CASCADE;")
+    )
     await db_session.commit()
 
 
@@ -48,6 +53,18 @@ async def create_user(db_session):
 
 
 @pytest.fixture
+async def create_camera(db_session):
+    async def _create_camera(camera_data):
+        camera = Camera(**camera_data)
+        db_session.add(camera)
+        await db_session.commit()
+        await db_session.refresh(camera)
+        return camera
+
+    return _create_camera
+
+
+@pytest.fixture
 async def get_user_service(db_session):
     user_repo = UserRepo(db_session)
     user_service = UserService(user_repo)
@@ -59,3 +76,10 @@ async def get_auth_service(db_session):
     user_repo = UserRepo(db_session)
     auth_service = AuthService(user_repo)
     return auth_service
+
+
+@pytest.fixture
+async def get_camera_service(db_session):
+    camera_repo = CameraRepo(db_session)
+    camera_service = CameraService(camera_repo)
+    return camera_service

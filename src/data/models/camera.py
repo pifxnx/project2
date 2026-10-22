@@ -23,7 +23,7 @@ class Camera(Base):
     camera_type: Mapped[str | None]  # тип камеры
     camera_latitude: Mapped[float]  # широта
     camera_longitude: Mapped[float]  # долгота
-    archive: Mapped[bool]  # признак архивной записи
+    archive: Mapped[bool] = mapped_column(default=False)  # признак архивной записи
     azimuth: Mapped[int]  # азимут
     process_dttm: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

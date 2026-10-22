@@ -2,6 +2,7 @@ from sqlalchemy.exc import IntegrityError
 from ...core.security import hash_password_async
 from ...data.repositories.user_repo import UserRepo
 from ...data.models.user import User
+from ...schemas.user import UserCreate
 from ..exceptions.user_exceptions import (
     UserAlreadyExistsException,
     UserNotFoundException,
@@ -12,14 +13,14 @@ class UserService:
     def __init__(self, repository: UserRepo):
         self.repository = repository
 
-    async def register_user(self, email, fullname, password, organization):
+    async def register_user(self, data: UserCreate):
         try:
-            pwd = await hash_password_async(password)
+            pwd = await hash_password_async(data.password)
             user = User(
-                email=email,
-                fullname=fullname,
+                email=data.email,
+                fullname=data.fullname,
                 hashed_password=pwd,
-                organization=organization,
+                organization=data.organization,
             )
             user = await self.repository.create_user(user)
 

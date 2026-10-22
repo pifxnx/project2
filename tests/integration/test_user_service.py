@@ -1,4 +1,5 @@
 import pytest
+from src.schemas.user import UserCreate
 from src.domain.exceptions.user_exceptions import (
     UserNotFoundException,
     UserAlreadyExistsException,
@@ -36,13 +37,13 @@ async def test_register_user_success(get_user_service):
     service = get_user_service
 
     user_data = {
-        "email": "1111",
+        "email": "a1@a.com",
         "fullname": "Test User",
         "password": "hashed_password",
         "organization": "Test",
     }
 
-    user = await service.register_user(**user_data)
+    user = await service.register_user(UserCreate(**user_data))
 
     assert user is not None
     assert user.email == user_data["email"]
@@ -53,7 +54,7 @@ async def test_register_user_success(get_user_service):
 
 async def test_register_user_already_exists(get_user_service, create_user):
     user_data = {
-        "email": "11111",
+        "email": "a2@a.com",
         "fullname": "Test User",
         "hashed_password": "password",
         "organization": "Test",
@@ -66,4 +67,4 @@ async def test_register_user_already_exists(get_user_service, create_user):
     user_data["password"] = "password"
 
     with pytest.raises(UserAlreadyExistsException):
-        await service.register_user(**user_data)
+        await service.register_user(UserCreate(**user_data))

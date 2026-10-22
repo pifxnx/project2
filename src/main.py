@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from .routers.user import router as user_router
 from .routers.auth import router as auth_router
+from .routers.camera import router as camera_router
 from .core.exceptions import AppException
 
 
@@ -24,3 +25,4 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 app.include_router(user_router)
 app.include_router(auth_router)
+app.include_router(camera_router)

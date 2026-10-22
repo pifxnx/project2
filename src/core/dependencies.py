@@ -9,6 +9,8 @@ from ..data.repositories.user_repo import UserRepo
 from ..domain.services.user_service import UserService
 from ..domain.exceptions.auth_exceptions import InvalidCredentialsException
 from ..domain.exceptions.user_exceptions import UserNotFoundException
+from ..data.repositories.camera_repo import CameraRepo
+from ..domain.services.camera_service import CameraService
 
 
 def get_user_service(db: AsyncSession = Depends(get_db)):
@@ -20,6 +22,12 @@ def get_auth_service(db: AsyncSession = Depends(get_db)):
     user_repo = UserRepo(db)
 
     return AuthService(user_repo)
+
+
+def get_camera_service(db: AsyncSession = Depends(get_db)):
+    camera_repo = CameraRepo(db)
+
+    return CameraService(camera_repo)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
