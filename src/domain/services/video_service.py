@@ -1,8 +1,13 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from ...schemas.video import VideoResponse
 from ...data.repositories.video_repo import VideoRepo
 from ...core.storage import MinioStorage
-from ..exceptions.video_exceptions import VideoNotFoundException
+from ..exceptions.video_exceptions import (
+    VideoNotFoundException,
+    InvalidVideoFormatException,
+)
+from ...worker.tasks import process_video_task
+from ...worker.worker_queue import q
 
 
 class VideoService:
@@ -40,5 +45,15 @@ class VideoService:
         self.storage.delete_file(video.storage_key)
 
     async def upload_video(self, camera_id: UUID, file_path: str, file_name: str):
-        pass
-        ##TODO: Implement upload_video method
+        if file_ext := file_name.split(".")[-1] != "mp4":
+            raise InvalidVideoFormatException(file_name)
+
+        storage_key = f"{camera_id}/{uuid4()}.mp4"
+
+        res = q.enqueue(process_video_task, file_path, storage_key)
+
+        return {
+            "message": "Video upload initiated",
+            "job_id": res.id,
+            "storage_key": storage_key,
+        }

@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     minio_access_key: str
     minio_secret_key: str
     minio_secure: bool
+    redis_url: str
+    upload_dir: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
