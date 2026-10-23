@@ -16,6 +16,6 @@ class Video(Base):
     camera_id: Mapped[UUID] = mapped_column(
         ForeignKey("cameras.id", ondelete="CASCADE"), index=True
     )
-    storage_url: Mapped[str]
+    storage_key: Mapped[str]
 
     camera: Mapped["Camera"] = relationship(back_populates="videos")

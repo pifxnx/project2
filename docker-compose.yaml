@@ -50,7 +50,6 @@ services:
 
   minio:
     image: quay.io/minio/minio
-    container_name: production_control_minio
     ports:
       - "9000:9000"  
       - "9001:9001"  

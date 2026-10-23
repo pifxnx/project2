@@ -24,7 +24,7 @@ class VideoRepo:
 
         return video
 
-    async def get_video_by_camera_id(self, camera_id: UUID) -> list[Video]:
+    async def get_videos_by_camera_id(self, camera_id: UUID) -> list[Video]:
         stmt = select(Video).where(Video.camera_id == camera_id)
         result = await self.session.execute(stmt)
 
@@ -32,11 +32,6 @@ class VideoRepo:
 
         return list(videos)
 
-    async def delete_video(self, video_id: int) -> None:
-        video = await self.get_video_by_id(video_id)
-        if video:
-            await self.session.delete(video)
-            await self.session.commit()
-
-        else:
-            raise ValueError()
+    async def delete_video(self, video: Video) -> None:
+        await self.session.delete(video)
+        await self.session.commit()

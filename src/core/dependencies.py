@@ -11,6 +11,9 @@ from ..domain.exceptions.auth_exceptions import InvalidCredentialsException
 from ..domain.exceptions.user_exceptions import UserNotFoundException
 from ..data.repositories.camera_repo import CameraRepo
 from ..domain.services.camera_service import CameraService
+from ..data.repositories.video_repo import VideoRepo
+from ..domain.services.video_service import VideoService
+from ..core.storage import minio_storage
 
 
 def get_user_service(db: AsyncSession = Depends(get_db)):
@@ -28,6 +31,11 @@ def get_camera_service(db: AsyncSession = Depends(get_db)):
     camera_repo = CameraRepo(db)
 
     return CameraService(camera_repo)
+
+
+def get_video_service(db: AsyncSession = Depends(get_db)):
+    video_repo = VideoRepo(db)
+    return VideoService(video_repo, minio_storage)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")

@@ -15,10 +15,6 @@ class MinioStorage:
     def upload_file(self, file_path: str, object_name: str, bucket_name: str = "video"):
         self.client.fput_object(bucket_name, object_name, file_path)
 
-        url = self.client.presigned_get_object(bucket_name, object_name)
-
-        return url
-
     def delete_file(self, object_name: str, bucket_name: str = "video"):
         self.client.remove_object(bucket_name, object_name)
 
@@ -30,6 +26,10 @@ class MinioStorage:
         )
 
         return url
+
+    def ensure_bucket(self, bucket_name: str = "video"):
+        if not self.client.bucket_exists(bucket_name):
+            self.client.make_bucket(bucket_name)
 
 
 minio_storage = MinioStorage()

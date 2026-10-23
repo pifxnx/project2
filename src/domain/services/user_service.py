@@ -2,7 +2,7 @@ from sqlalchemy.exc import IntegrityError
 from ...core.security import hash_password_async
 from ...data.repositories.user_repo import UserRepo
 from ...data.models.user import User
-from ...schemas.user import UserCreate
+from ...schemas.user import UserCreate, UserResponse
 from ..exceptions.user_exceptions import (
     UserAlreadyExistsException,
     UserNotFoundException,
@@ -27,7 +27,7 @@ class UserService:
         except IntegrityError:
             raise UserAlreadyExistsException()
 
-        return user
+        return UserResponse.model_validate(user)
 
     async def get_user_by_id(self, user_id: int):
         user = await self.repository.get_user_by_id(user_id)
@@ -35,4 +35,4 @@ class UserService:
         if not user:
             raise UserNotFoundException()
 
-        return user
+        return UserResponse.model_validate(user)
