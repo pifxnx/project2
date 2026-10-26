@@ -1,4 +1,6 @@
+import aiofiles
 from uuid import UUID, uuid4
+from fastapi import UploadFile
 from ...schemas.video import VideoResponse
 from ...data.repositories.video_repo import VideoRepo
 from ...core.storage import MinioStorage
@@ -8,6 +10,7 @@ from ..exceptions.video_exceptions import (
 )
 from ...worker.tasks import process_video_task
 from ...worker.worker_queue import q
+from ...core.config import settings
 
 
 class VideoService:
@@ -44,13 +47,24 @@ class VideoService:
         await self.repository.delete_video(video)
         self.storage.delete_file(video.storage_key)
 
-    async def upload_video(self, camera_id: UUID, file_path: str, file_name: str):
-        if file_ext := file_name.split(".")[-1] != "mp4":
+    async def upload_video(
+        self, camera_id: UUID, file: UploadFile, file_path: str, file_name: str
+    ):
+        if file_name is None or file_name.split(".")[-1].lower() != "mp4":
             raise InvalidVideoFormatException(file_name)
 
         storage_key = f"{camera_id}/{uuid4()}.mp4"
 
-        res = q.enqueue(process_video_task, file_path, storage_key)
+        async with aiofiles.open(file_path, "wb") as out_file:
+            while chunk := await file.read(1024 * 1024):
+                await out_file.write(chunk)
+
+        res = q.enqueue(
+            process_video_task,
+            file_path=file_path,
+            camera_id=camera_id,
+            storage_key=storage_key,
+        )
 
         return {
             "message": "Video upload initiated",

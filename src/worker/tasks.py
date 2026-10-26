@@ -1,4 +1,7 @@
-def process_video_task(file_path: str, storage_key: str):
+from uuid import UUID
+
+
+def process_video_task(file_path: str, camera_id: UUID, storage_key: str):
     print(f"Processing video file: {file_path}, storage_key: {storage_key}")
 
 
