@@ -48,7 +48,7 @@ async def upload_video(
 
     await camera_service.get_camera_by_id(camera_id)
     file_name = file.filename
-    file_path = f"{settings.upload_dir}/{uuid4()}.mp4"
+    file_path = f"{settings.upload_dir}/{uuid4()}"
 
     res = await video_service.upload_video(camera_id, file, file_path, file_name)
 

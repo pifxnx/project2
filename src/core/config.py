@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     db_url: str
+    db_url_sync: str
     token_exp: int
     token_secret: str
     token_algorithm: str

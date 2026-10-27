@@ -24,14 +24,16 @@ class VideoService:
         if not video:
             raise VideoNotFoundException(video_id)
 
-        url = self.storage.get_presigned_url(video.storage_key)
+        url = self.storage.get_presigned_url(video.video_storage_key)
 
         return VideoResponse(id=video.id, camera_id=video.camera_id, url=url)
 
     async def get_videos_by_camera_id(self, camera_id: UUID):
         videos = await self.repository.get_videos_by_camera_id(camera_id)
 
-        urls = [self.storage.get_presigned_url(video.storage_key) for video in videos]
+        urls = [
+            self.storage.get_presigned_url(video.video_storage_key) for video in videos
+        ]
 
         return [
             VideoResponse(id=video.id, camera_id=video.camera_id, url=url)
@@ -45,15 +47,22 @@ class VideoService:
             raise VideoNotFoundException(video_id)
 
         await self.repository.delete_video(video)
-        self.storage.delete_file(video.storage_key)
+        self.storage.delete_file(video.video_storage_key)
 
     async def upload_video(
-        self, camera_id: UUID, file: UploadFile, file_path: str, file_name: str
+        self,
+        camera_id: UUID,
+        file: UploadFile,
+        file_path: str,
+        file_name: str,
     ):
         if file_name is None or file_name.split(".")[-1].lower() != "mp4":
             raise InvalidVideoFormatException(file_name)
 
-        storage_key = f"{camera_id}/{uuid4()}.mp4"
+        key = f"{camera_id}/{uuid4()}"
+
+        video_storage_key = key + ".mp4"
+        preview_storage_key = key + ".jpg"
 
         async with aiofiles.open(file_path, "wb") as out_file:
             while chunk := await file.read(1024 * 1024):
@@ -63,11 +72,12 @@ class VideoService:
             process_video_task,
             file_path=file_path,
             camera_id=camera_id,
-            storage_key=storage_key,
+            video_storage_key=video_storage_key,
+            preview_storage_key=preview_storage_key,
         )
 
         return {
             "message": "Video upload initiated",
             "job_id": res.id,
-            "storage_key": storage_key,
+            "storage_key": video_storage_key,
         }

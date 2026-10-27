@@ -1,6 +1,6 @@
 import asyncio
 from random import uniform, randint
-from ..core.database import sessionmaker
+from ..core.database import session_local_async
 from ..data.repositories.camera_repo import CameraRepo
 from ..data.models.camera import Camera
 
@@ -10,7 +10,7 @@ LAT_RANGE = (55.5, 55.95)
 
 
 async def add_cameras(cameras: list[Camera]):
-    async with sessionmaker() as session:
+    async with session_local_async() as session:
         repo = CameraRepo(session)
         await repo.create_many(cameras)
 
