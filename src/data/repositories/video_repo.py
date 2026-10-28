@@ -2,7 +2,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
-from ..models.video import Video
+from ..models.video import Video, VideoStatus
 
 
 class VideoRepo:
@@ -25,7 +25,9 @@ class VideoRepo:
         return video
 
     async def get_videos_by_camera_id(self, camera_id: UUID) -> list[Video]:
-        stmt = select(Video).where(Video.camera_id == camera_id)
+        stmt = select(Video).where(
+            Video.camera_id == camera_id, Video.status == VideoStatus.success
+        )
         result = await self.session.execute(stmt)
 
         videos = result.scalars().all()

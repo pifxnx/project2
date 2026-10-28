@@ -27,12 +27,12 @@ async def test_get_video_by_id_success(
 
     video_service = get_video_service_mock_storage
     storage = video_service.storage
-    storage.get_presigned_url.return_value = "http://url"
+    storage.get_presigned_url.side_effect = lambda key: f"http://url/{key}"
 
     result = await video_service.get_video_by_id(video.id)
 
-    assert result.url == "http://url"
-    storage.get_presigned_url.assert_called_once_with(video.video_storage_key)
+    assert result.video_url == f"http://url/{video.video_storage_key}"
+    assert result.preview_url == f"http://url/{video.preview_storage_key}"
 
 
 async def test_get_video_by_id_not_found(get_video_service_mock_storage):
@@ -113,7 +113,10 @@ async def test_get_videos_by_camera_id(
 
     video = await create_video(video_data)
     video_data.update(
-        {"video_storage_key": "test_video_2.mp4", "preview_storage_key": "test_video_2.jpg"}
+        {
+            "video_storage_key": "test_video_2.mp4",
+            "preview_storage_key": "test_video_2.jpg",
+        }
     )
     video_2 = await create_video(video_data)
 
@@ -126,5 +129,43 @@ async def test_get_videos_by_camera_id(
     assert len(videos) == 2
     assert videos[0].id == video.id
     assert videos[1].id == video_2.id
-    assert videos[0].url == f"http://url/{video.video_storage_key}"
-    assert videos[1].url == f"http://url/{video_2.video_storage_key}"
+    assert videos[0].video_url == f"http://url/{video.video_storage_key}"
+    assert videos[0].preview_url == f"http://url/{video.preview_storage_key}"
+    assert videos[1].video_url == f"http://url/{video_2.video_storage_key}"
+    assert videos[1].preview_url == f"http://url/{video_2.preview_storage_key}"
+
+
+async def test_get_video_by_camera_id_different_statuses(
+    get_video_service_mock_storage, create_camera, create_video
+):
+    camera_data = {
+        "camera_id": "cam-00001",
+        "camera_name": "Камера 1",
+        "camera_latitude": 55.75,
+        "camera_longitude": 37.6,
+        "azimuth": 90,
+    }
+
+    camera = await create_camera(camera_data)
+
+    video_service = get_video_service_mock_storage
+    storage = video_service.storage
+    storage.get_presigned_url.side_effect = lambda key: f"http://url/{key}"
+
+    video_data = {
+        "camera_id": camera.id,
+        "video_storage_key": "test_video.mp4",
+        "preview_storage_key": "test_video.jpg",
+        "status": VideoStatus.success,
+    }
+
+    video1 = await create_video(video_data)
+    video_data.update({"status": VideoStatus.processing})
+    video2 = await create_video(video_data)
+    video_data.update({"status": VideoStatus.failed})
+    video3 = await create_video(video_data)
+
+    videos = await video_service.get_videos_by_camera_id(camera.id)
+
+    assert len(videos) == 1
+    assert videos[0].id == video1.id

@@ -9,4 +9,5 @@ class VideoBase(BaseModel):
 class VideoResponse(VideoBase):
     id: int
     camera_id: UUID
-    url: str
+    video_url: str
+    preview_url: str

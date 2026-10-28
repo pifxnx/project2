@@ -1,8 +1,10 @@
+import asyncio
 import aiofiles
 from uuid import UUID, uuid4
 from fastapi import UploadFile
 from ...schemas.video import VideoResponse
 from ...data.repositories.video_repo import VideoRepo
+from ...data.models.video import Video
 from ...core.storage import MinioStorage
 from ..exceptions.video_exceptions import (
     VideoNotFoundException,
@@ -18,27 +20,33 @@ class VideoService:
         self.repository = repository
         self.storage = storage
 
+    def _to_response_list(self, videos: list[Video]):
+        return [self._to_response(video) for video in videos]
+
+    def _to_response(self, video: Video):
+        return VideoResponse(
+            id=video.id,
+            camera_id=video.camera_id,
+            video_url=self.storage.get_presigned_url(video.video_storage_key),
+            preview_url=self.storage.get_presigned_url(video.preview_storage_key),
+        )
+
     async def get_video_by_id(self, video_id: int) -> VideoResponse:
         video = await self.repository.get_video_by_id(video_id)
 
         if not video:
             raise VideoNotFoundException(video_id)
 
-        url = self.storage.get_presigned_url(video.video_storage_key)
+        res = await asyncio.to_thread(self._to_response, video)
 
-        return VideoResponse(id=video.id, camera_id=video.camera_id, url=url)
+        return res
 
     async def get_videos_by_camera_id(self, camera_id: UUID):
         videos = await self.repository.get_videos_by_camera_id(camera_id)
 
-        urls = [
-            self.storage.get_presigned_url(video.video_storage_key) for video in videos
-        ]
+        res = await asyncio.to_thread(self._to_response_list, videos)
 
-        return [
-            VideoResponse(id=video.id, camera_id=video.camera_id, url=url)
-            for video, url in zip(videos, urls)
-        ]
+        return res
 
     async def delete_video(self, video_id: int):
         video = await self.repository.get_video_by_id(video_id)
@@ -47,7 +55,7 @@ class VideoService:
             raise VideoNotFoundException(video_id)
 
         await self.repository.delete_video(video)
-        self.storage.delete_file(video.video_storage_key)
+        await asyncio.to_thread(self.storage.delete_file, video.video_storage_key)
 
     async def upload_video(
         self,
