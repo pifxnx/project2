@@ -64,7 +64,7 @@ class VideoService:
         file_path: str,
         file_name: str,
     ):
-        if file_name is None or file_name.split(".")[-1].lower() != "mp4":
+        if not file_name or file_name.split(".")[-1].lower() != "mp4":
             raise InvalidVideoFormatException(file_name)
 
         key = f"{camera_id}/{uuid4()}"
