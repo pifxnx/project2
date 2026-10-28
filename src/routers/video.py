@@ -40,16 +40,14 @@ async def delete_video(
 @router.post("/camera/{camera_id}/videos", status_code=status.HTTP_202_ACCEPTED)
 async def upload_video(
     camera_id: UUID,
-    file: UploadFile,
+    files: list[UploadFile],
     video_service=Depends(get_video_service),
     camera_service=Depends(get_camera_service),
     user=Depends(get_current_user),
 ):
 
     await camera_service.get_camera_by_id(camera_id)
-    file_name = file.filename
-    file_path = f"{settings.upload_dir}/{uuid4()}"
 
-    res = await video_service.upload_video(camera_id, file, file_path, file_name)
+    res = await video_service.upload_video(camera_id, files)
 
     return res

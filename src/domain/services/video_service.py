@@ -2,6 +2,7 @@ import asyncio
 import aiofiles
 from uuid import UUID, uuid4
 from fastapi import UploadFile
+from rq.job import Dependency
 from ...schemas.video import VideoResponse
 from ...data.repositories.video_repo import VideoRepo
 from ...data.models.video import Video
@@ -60,32 +61,51 @@ class VideoService:
     async def upload_video(
         self,
         camera_id: UUID,
-        file: UploadFile,
-        file_path: str,
-        file_name: str,
+        files: list[UploadFile],
     ):
-        if not file_name or file_name.split(".")[-1].lower() != "mp4":
-            raise InvalidVideoFormatException(file_name)
+        file_names = []
+        for file in files:
+            file_name = file.filename
+            if not file_name or file_name.split(".")[-1].lower() != "mp4":
+                raise InvalidVideoFormatException(file_name)
+            file_names.append(file_name)
 
-        key = f"{camera_id}/{uuid4()}"
+        jobs_info = []
+        prev_job = None
+        for file in files:
+            file_path = f"{settings.upload_dir}/{uuid4()}"
 
-        video_storage_key = key + ".mp4"
-        preview_storage_key = key + ".jpg"
+            key = f"{camera_id}/{uuid4()}"
 
-        async with aiofiles.open(file_path, "wb") as out_file:
-            while chunk := await file.read(1024 * 1024):
-                await out_file.write(chunk)
+            video_storage_key = key + ".mp4"
+            preview_storage_key = key + ".jpg"
 
-        res = q.enqueue(
-            process_video_task,
-            file_path=file_path,
-            camera_id=camera_id,
-            video_storage_key=video_storage_key,
-            preview_storage_key=preview_storage_key,
-        )
+            async with aiofiles.open(file_path, "wb") as out_file:
+                while chunk := await file.read(1024 * 1024):
+                    await out_file.write(chunk)
+
+            job = q.enqueue(
+                process_video_task,
+                file_path=file_path,
+                camera_id=camera_id,
+                video_storage_key=video_storage_key,
+                preview_storage_key=preview_storage_key,
+                depends_on=Dependency([prev_job], allow_failure=True)
+                if prev_job
+                else None,
+            )
+
+            prev_job = job.id
+
+            jobs_info.append(
+                {
+                    "job_id": job.id,
+                    "video_storage_key": video_storage_key,
+                    "preview_storage_key": preview_storage_key,
+                }
+            )
 
         return {
             "message": "Video upload initiated",
-            "job_id": res.id,
-            "storage_key": video_storage_key,
+            "jobs_info": jobs_info,
         }
