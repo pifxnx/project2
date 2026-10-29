@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import text
 from sqlalchemy import create_engine
@@ -145,9 +145,16 @@ async def get_auth_service(db_session):
 
 
 @pytest.fixture
-async def get_camera_service(db_session):
+async def mock_cache():
+    mock = AsyncMock()
+    mock.get.return_value = None
+    return mock
+
+
+@pytest.fixture
+async def get_camera_service(db_session, mock_cache):
     camera_repo = CameraRepo(db_session)
-    camera_service = CameraService(camera_repo)
+    camera_service = CameraService(camera_repo, mock_cache)
     return camera_service
 
 

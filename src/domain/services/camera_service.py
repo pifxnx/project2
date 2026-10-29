@@ -3,16 +3,19 @@ from sqlalchemy.exc import IntegrityError
 from ...data.repositories.camera_repo import CameraRepo
 from ...data.models.camera import Camera
 from ...schemas.camera import CameraCreate, CameraResponse, CameraFilters
-from ...schemas.geo import build_feature_collection
+from ...schemas.geo import build_feature_collection, FeatureCollection
 from ..exceptions.camera_exceptions import (
     CameraNotFoundException,
     CameraAlreadyExistsException,
 )
+from ...core.cache import Cache
+from redis.exceptions import RedisError
 
 
 class CameraService:
-    def __init__(self, repository: CameraRepo):
+    def __init__(self, repository: CameraRepo, cache: Cache):
         self.repository = repository
+        self.cache = cache
 
     async def create_camera(self, data: CameraCreate):
         camera = Camera(**data.model_dump())
@@ -52,9 +55,20 @@ class CameraService:
         cameras = await self.repository.get_all_cameras(filters)
         return [CameraResponse.model_validate(camera) for camera in cameras]
 
-    async def get_cameras_has_videos(self):
-        cameras = await self.repository.get_cameras_has_videos()
+    async def get_cameras_geojson(self):
+        try:
+            if res := await self.cache.get("cameras:geojson"):
+                res = FeatureCollection.model_validate_json(res)
+        except RedisError:
+            res = None
 
-        res = build_feature_collection(cameras)
+        if res is None:
+            cameras = await self.repository.get_cameras_has_videos()
+
+            res = build_feature_collection(cameras)
+            try:
+                await self.cache.set("cameras:geojson", res.model_dump_json())
+            except RedisError:
+                pass
 
         return res

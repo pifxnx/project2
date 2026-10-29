@@ -14,6 +14,7 @@ from ..domain.services.camera_service import CameraService
 from ..data.repositories.video_repo import VideoRepo
 from ..domain.services.video_service import VideoService
 from ..core.storage import minio_storage
+from ..core.cache import cache
 
 
 def get_user_service(db: AsyncSession = Depends(get_db)):
@@ -30,7 +31,7 @@ def get_auth_service(db: AsyncSession = Depends(get_db)):
 def get_camera_service(db: AsyncSession = Depends(get_db)):
     camera_repo = CameraRepo(db)
 
-    return CameraService(camera_repo)
+    return CameraService(camera_repo, cache)
 
 
 def get_video_service(db: AsyncSession = Depends(get_db)):

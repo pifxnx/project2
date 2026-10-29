@@ -21,7 +21,7 @@ async def get_cameras(
 
 @router.get("/geojson", response_model=FeatureCollection)
 async def get_cameras_geojson(camera_service=Depends(get_camera_service)):
-    cameras = await camera_service.get_cameras_has_videos()
+    cameras = await camera_service.get_cameras_geojson()
 
     return cameras
 
