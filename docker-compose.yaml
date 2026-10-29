@@ -17,6 +17,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       minio:
         condition: service_healthy
       redis:
@@ -39,6 +41,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       minio:
         condition: service_healthy
       redis:
@@ -60,6 +64,24 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  migrate:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/project2
+      - DB_URL_SYNC=postgresql+psycopg://postgres:postgres@db:5432/project2
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - REDIS_URL=redis://redis:6379/0
+    command: alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+
 
   test_db:
     image: postgres:16-alpine
