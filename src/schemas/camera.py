@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from uuid import UUID
 
 
@@ -30,3 +30,21 @@ class CameraResponse(CameraBase):
     camera_longitude: float  # долгота
     archive: bool  # признак архивной записи
     azimuth: int  # азимут
+
+
+class CameraFilters(BaseModel):
+    camera_name: str | None = None
+    min_videos_count: int | None = None
+    max_videos_count: int | None = None
+    camera_model: str | None = None
+    camera_type: str | None = None
+    camera_class: str | None = None
+
+    @model_validator(mode="after")
+    def validate_videos_count(self):
+        if self.min_videos_count is not None and self.max_videos_count is not None:
+            if self.min_videos_count > self.max_videos_count:
+                raise ValueError(
+                    "videos_count_from must be less than or equal to videos_count_to"
+                )
+        return self

@@ -2,7 +2,8 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 from ...data.repositories.camera_repo import CameraRepo
 from ...data.models.camera import Camera
-from ...schemas.camera import CameraCreate, CameraResponse
+from ...schemas.camera import CameraCreate, CameraResponse, CameraFilters
+from ...schemas.geo import build_feature_collection
 from ..exceptions.camera_exceptions import (
     CameraNotFoundException,
     CameraAlreadyExistsException,
@@ -47,6 +48,13 @@ class CameraService:
 
         return CameraResponse.model_validate(camera)
 
-    async def get_all_cameras(self):
-        cameras = await self.repository.get_all_cameras()
+    async def get_all_cameras(self, filters: CameraFilters):
+        cameras = await self.repository.get_all_cameras(filters)
         return [CameraResponse.model_validate(camera) for camera in cameras]
+
+    async def get_cameras_has_videos(self):
+        cameras = await self.repository.get_cameras_has_videos()
+
+        res = build_feature_collection(cameras)
+
+        return res
