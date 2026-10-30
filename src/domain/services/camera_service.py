@@ -8,7 +8,7 @@ from ..exceptions.camera_exceptions import (
     CameraNotFoundException,
     CameraAlreadyExistsException,
 )
-from ...core.cache import Cache
+from ...core.cache import Cache, geojson_key
 from redis.exceptions import RedisError
 
 
@@ -57,7 +57,7 @@ class CameraService:
 
     async def get_cameras_geojson(self):
         try:
-            if res := await self.cache.get("cameras:geojson"):
+            if res := await self.cache.get(geojson_key):
                 res = FeatureCollection.model_validate_json(res)
         except RedisError:
             res = None
@@ -67,7 +67,7 @@ class CameraService:
 
             res = build_feature_collection(cameras)
             try:
-                await self.cache.set("cameras:geojson", res.model_dump_json())
+                await self.cache.set(geojson_key, res.model_dump_json())
             except RedisError:
                 pass
 

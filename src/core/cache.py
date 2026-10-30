@@ -4,6 +4,8 @@ from .config import settings
 
 redis_client = Redis.from_url(settings.redis_url, decode_responses=True)
 
+geojson_key = "cameras:geojson"
+
 
 class Cache:
     def __init__(self, client: Redis, ttl: int):

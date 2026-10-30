@@ -6,6 +6,7 @@ from src.domain.exceptions.camera_exceptions import (
 from src.schemas.camera import CameraCreate, CameraResponse, CameraFilters
 from src.schemas.geo import FeatureCollection, Feature, Properties, Geometry
 from src.data.models.video import VideoStatus
+from src.core.cache import geojson_key
 
 
 async def test_create_camera(get_camera_service):
@@ -207,7 +208,7 @@ async def test_geojson_cache_miss(get_camera_service, mock_cache, create_camera)
 
     geojson = await camera_service.get_cameras_geojson()
 
-    mock_cache.get.assert_called_once_with("cameras:geojson")
+    mock_cache.get.assert_called_once_with(geojson_key)
     mock_cache.set.assert_called_once()
 
     assert len(geojson.features) == 1
@@ -229,7 +230,7 @@ async def test_geojson_cache_hit(get_camera_service, mock_cache):
 
     geojson = await camera_service.get_cameras_geojson()
 
-    mock_cache.get.assert_called_once_with("cameras:geojson")
+    mock_cache.get.assert_called_once_with(geojson_key)
     mock_cache.set.assert_not_called()
 
     assert geojson == cached

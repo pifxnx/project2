@@ -3,6 +3,7 @@ import aiofiles
 from uuid import UUID, uuid4
 from fastapi import UploadFile
 from rq.job import Dependency
+from redis.exceptions import RedisError
 from ...schemas.video import VideoResponse
 from ...data.repositories.video_repo import VideoRepo
 from ...data.models.video import Video
@@ -14,12 +15,14 @@ from ..exceptions.video_exceptions import (
 from ...worker.tasks import process_video_task
 from ...worker.worker_queue import q
 from ...core.config import settings
+from ...core.cache import Cache, geojson_key
 
 
 class VideoService:
-    def __init__(self, repository: VideoRepo, storage: MinioStorage):
+    def __init__(self, repository: VideoRepo, storage: MinioStorage, cache: Cache):
         self.repository = repository
         self.storage = storage
+        self.cache = cache
 
     def _to_response_list(self, videos: list[Video]):
         return [self._to_response(video) for video in videos]
@@ -56,6 +59,12 @@ class VideoService:
             raise VideoNotFoundException(video_id)
 
         await self.repository.delete_video(video)
+
+        try:
+            await self.cache.delete(geojson_key)
+        except RedisError:
+            pass
+
         await asyncio.to_thread(self.storage.delete_file, video.video_storage_key)
 
     async def upload_video(

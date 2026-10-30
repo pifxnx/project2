@@ -169,3 +169,37 @@ async def test_get_video_by_camera_id_different_statuses(
 
     assert len(videos) == 1
     assert videos[0].id == video1.id
+
+
+async def test_video_service_invalidate_cache(
+    get_video_service_mock_storage, create_camera, create_video
+):
+    camera_data = {
+        "camera_id": "cam-00001",
+        "camera_name": "Камера 1",
+        "camera_latitude": 55.75,
+        "camera_longitude": 37.6,
+        "azimuth": 90,
+    }
+
+    camera = await create_camera(camera_data)
+
+    video_service = get_video_service_mock_storage
+    cache = video_service.cache
+
+    with pytest.raises(VideoNotFoundException):
+        await video_service.delete_video(999)
+
+    cache.delete.assert_not_called()
+
+    video_data = {
+        "camera_id": camera.id,
+        "video_storage_key": "test_video.mp4",
+        "preview_storage_key": "test_video.jpg",
+        "status": VideoStatus.success,
+    }
+
+    video = await create_video(video_data)
+    await video_service.delete_video(video.id)
+
+    cache.delete.assert_called_once()

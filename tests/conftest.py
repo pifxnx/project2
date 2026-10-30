@@ -159,8 +159,8 @@ async def get_camera_service(db_session, mock_cache):
 
 
 @pytest.fixture
-def get_video_service_mock_storage(db_session):
+def get_video_service_mock_storage(db_session, mock_cache):
     video_repo = VideoRepo(db_session)
     mock_storage = MagicMock(spec=MinioStorage)
-    video_service = VideoService(video_repo, mock_storage)
+    video_service = VideoService(video_repo, mock_storage, mock_cache)
     return video_service

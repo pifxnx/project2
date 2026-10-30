@@ -36,7 +36,7 @@ def get_camera_service(db: AsyncSession = Depends(get_db)):
 
 def get_video_service(db: AsyncSession = Depends(get_db)):
     video_repo = VideoRepo(db)
-    return VideoService(video_repo, minio_storage)
+    return VideoService(video_repo, minio_storage, cache)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
