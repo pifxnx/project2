@@ -1,6 +1,10 @@
-from sqlalchemy.orm import Mapped, mapped_column
-
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
 from ...core.database import Base
+
+
+if TYPE_CHECKING:
+    from .video import Video
 
 
 class User(Base):
@@ -11,3 +15,5 @@ class User(Base):
     fullname: Mapped[str]
     hashed_password: Mapped[str]
     organization: Mapped[str] = mapped_column(nullable=True)
+
+    videos: Mapped[list["Video"]] = relationship(back_populates="user")
