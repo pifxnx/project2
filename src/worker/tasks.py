@@ -1,10 +1,11 @@
 import subprocess
-import os
 from pathlib import Path
 from uuid import UUID
+from redis.exceptions import RedisError
 from ..core.storage import minio_storage
 from ..core.database import session_local_sync
 from ..data.models.video import Video, VideoStatus
+from ..core.cache import invalidate_cache_sync, geojson_key
 
 
 def extract_first_frame(video_path: str, out_path: str) -> None:
@@ -60,6 +61,11 @@ def process_video_task(
             else:
                 video.status = VideoStatus.success
                 session.commit()
+
+                try:
+                    invalidate_cache_sync(geojson_key)
+                except RedisError:
+                    pass
 
     finally:
         Path(file_path).unlink(missing_ok=True)

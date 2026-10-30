@@ -22,18 +22,30 @@ class CameraService:
 
         try:
             camera = await self.repository.create_camera(camera)
-            return CameraResponse.model_validate(camera)
         except IntegrityError:
             raise CameraAlreadyExistsException("Camera with this ID already exists.")
+
+        try:
+            await self.cache.delete(geojson_key)
+        except RedisError:
+            pass
+
+        return CameraResponse.model_validate(camera)
 
     async def create_many(self, data: list[CameraCreate]):
         cameras = [Camera(**item.model_dump()) for item in data]
 
         try:
             await self.repository.create_many(cameras)
-            return [CameraResponse.model_validate(camera) for camera in cameras]
         except IntegrityError:
             raise CameraAlreadyExistsException("One or more cameras already exist.")
+
+        try:
+            await self.cache.delete(geojson_key)
+        except RedisError:
+            pass
+
+        return [CameraResponse.model_validate(camera) for camera in cameras]
 
     async def get_camera_by_id(self, id: UUID):
         camera = await self.repository.get_camera_by_id(id)

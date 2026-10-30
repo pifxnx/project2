@@ -155,6 +155,26 @@ async def test_get_camera_filters_video_count(
     assert len(fourth) == 1
 
 
+@pytest.mark.parametrize(
+    "db_field, filter_field",
+    [
+        ("model", "camera_model"),
+        ("camera_class", "camera_class"),
+        ("camera_type", "camera_type"),
+    ],
+)
+async def test_get_cameras_filtered(
+    get_camera_service, create_camera, db_field, filter_field
+):
+    matching, other = await create_diff_cameras({db_field: "X"}, create_camera)
+    camera_service = get_camera_service
+
+    cameras = await camera_service.get_all_cameras(CameraFilters(**{filter_field: "X"}))
+
+    assert len(cameras) == 1
+    assert cameras[0].id == matching.id
+
+
 async def test_get_camera_geojson(get_camera_service, create_camera, create_video):
     camera_service = get_camera_service
 

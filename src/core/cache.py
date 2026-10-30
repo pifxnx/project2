@@ -1,8 +1,16 @@
 from redis.asyncio import Redis
+from redis import Redis as SyncRedis
 from .config import settings
 
 
 redis_client = Redis.from_url(settings.redis_url, decode_responses=True)
+
+redis_sync_client = SyncRedis.from_url(
+    settings.redis_url,
+    decode_responses=True,
+    socket_connect_timeout=2,
+    socket_timeout=1,
+)
 
 geojson_key = "cameras:geojson"
 
@@ -23,3 +31,7 @@ class Cache:
 
 
 cache = Cache(redis_client, 60)
+
+
+def invalidate_cache_sync(key: str):
+    redis_sync_client.delete(key)
