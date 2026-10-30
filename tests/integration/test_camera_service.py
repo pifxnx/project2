@@ -118,6 +118,7 @@ async def test_get_camera_filters_video_count(
 
     video_data = {
         "camera_id": camera1.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,
@@ -192,6 +193,7 @@ async def test_get_camera_geojson(get_camera_service, create_camera, create_vide
 
     video_data = {
         "camera_id": camera1.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,

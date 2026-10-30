@@ -18,6 +18,7 @@ async def test_get_video_by_id_success(
 
     video_data = {
         "camera_id": camera.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,
@@ -60,6 +61,7 @@ async def test_delete_video(
 
     video_data = {
         "camera_id": camera.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,
@@ -106,6 +108,7 @@ async def test_get_videos_by_camera_id(
 
     video_data = {
         "camera_id": camera.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,
@@ -154,6 +157,7 @@ async def test_get_video_by_camera_id_different_statuses(
 
     video_data = {
         "camera_id": camera.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,
@@ -194,6 +198,7 @@ async def test_video_service_invalidate_cache(
 
     video_data = {
         "camera_id": camera.id,
+        "name": "test.mp4",
         "video_storage_key": "test_video.mp4",
         "preview_storage_key": "test_video.jpg",
         "status": VideoStatus.success,

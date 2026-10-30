@@ -39,6 +39,7 @@ async def test_upload_video_invalid_format(
 
     with pytest.raises(InvalidVideoFormatException):
         await video_service.upload_video(
+            user_id=1,
             camera_id="test123", files=[make_file(filename)]
         )
 
@@ -53,6 +54,7 @@ async def test_upload_video_one_invalid_file_rejects_all(
 
     with pytest.raises(InvalidVideoFormatException):
         await video_service.upload_video(
+            user_id=1,
             camera_id="test123",
             files=[make_file("good.mp4"), make_file("bad.txt")],
         )
@@ -68,6 +70,7 @@ async def test_upload_video_success(
     video_service = get_video_service_mock_storage
 
     res = await video_service.upload_video(
+        user_id=1,
         camera_id="test123", files=[make_file("test.mp4", b"video-data")]
     )
 
@@ -92,7 +95,7 @@ async def test_upload_video_uppercase_extension(
     mock_queue.enqueue.return_value = make_job("1")
     video_service = get_video_service_mock_storage
 
-    await video_service.upload_video(camera_id="test123", files=[make_file("A.MP4")])
+    await video_service.upload_video(user_id=1, camera_id="test123", files=[make_file("A.MP4")])
 
     mock_queue.enqueue.assert_called_once()
 
@@ -104,6 +107,7 @@ async def test_upload_multiple_videos_are_chained(
     video_service = get_video_service_mock_storage
 
     res = await video_service.upload_video(
+        user_id=1,
         camera_id="test123",
         files=[make_file("a.mp4"), make_file("b.mp4"), make_file("c.mp4")],
     )

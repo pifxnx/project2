@@ -48,6 +48,6 @@ async def upload_video(
 
     await camera_service.get_camera_by_id(camera_id)
 
-    res = await video_service.upload_video(camera_id, files)
+    res = await video_service.upload_video(user.id, camera_id, files)
 
     return res

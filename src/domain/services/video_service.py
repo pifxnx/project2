@@ -69,6 +69,7 @@ class VideoService:
 
     async def upload_video(
         self,
+        user_id: int,
         camera_id: UUID,
         files: list[UploadFile],
     ):
@@ -81,7 +82,7 @@ class VideoService:
 
         jobs_info = []
         prev_job = None
-        for file in files:
+        for file, name in zip(files, file_names):
             file_path = f"{settings.upload_dir}/{uuid4()}"
 
             key = f"{camera_id}/{uuid4()}"
@@ -95,6 +96,8 @@ class VideoService:
 
             job = q.enqueue(
                 process_video_task,
+                user_id=user_id,
+                file_name=name,
                 file_path=file_path,
                 camera_id=camera_id,
                 video_storage_key=video_storage_key,

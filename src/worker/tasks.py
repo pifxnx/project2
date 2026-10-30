@@ -1,4 +1,5 @@
 import subprocess
+import json
 from pathlib import Path
 from uuid import UUID
 from redis.exceptions import RedisError
@@ -6,6 +7,37 @@ from ..core.storage import minio_storage
 from ..core.database import session_local_sync
 from ..data.models.video import Video, VideoStatus
 from ..core.cache import invalidate_cache_sync, geojson_key
+
+
+def probe_video(video_path: str) -> dict:
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height,r_frame_rate:format=duration",
+            "-of",
+            "json",
+            video_path,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    data = json.loads(result.stdout)
+
+    stream = data["streams"][0]
+    num, den = stream["r_frame_rate"].split("/")
+
+    return {
+        "duration": float(data["format"]["duration"]),
+        "video_resolution": f"{stream['width']}x{stream['height']}",
+        "fps": int(num) / int(den),
+    }
 
 
 def extract_first_frame(video_path: str, out_path: str) -> None:
@@ -28,13 +60,20 @@ def extract_first_frame(video_path: str, out_path: str) -> None:
 
 
 def process_video_task(
-    file_path: str, camera_id: UUID, video_storage_key: str, preview_storage_key: str
+    user_id: int,
+    file_name: str,
+    file_path: str,
+    camera_id: UUID,
+    video_storage_key: str,
+    preview_storage_key: str,
 ):
     preview_file_path = f"{file_path}.jpg"
 
     try:
         with session_local_sync() as session:
             video = Video(
+                user_id=user_id,
+                name=Path(file_name).stem,
                 camera_id=camera_id,
                 video_storage_key=video_storage_key,
                 preview_storage_key=preview_storage_key,
@@ -43,8 +82,10 @@ def process_video_task(
             session.add(video)
             session.commit()
             session.refresh(video)
+            video.name = f"{video.id}_{video.name}"
 
             try:
+                probe = probe_video(file_path)
                 extract_first_frame(file_path, preview_file_path)
                 minio_storage.upload_file(
                     file_path=preview_file_path,
@@ -59,7 +100,11 @@ def process_video_task(
                 raise
 
             else:
+                video.duration = probe["duration"]
+                video.video_resolution = probe["video_resolution"]
+                video.fps = probe["fps"]
                 video.status = VideoStatus.success
+                video.name = f"{video.id}_{video.name}"
                 session.commit()
 
                 try:

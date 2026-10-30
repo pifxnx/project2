@@ -21,11 +21,17 @@ def test_processing_video(
 
     first_frame_func = MagicMock()
     monkeypatch.setattr("src.worker.tasks.extract_first_frame", first_frame_func)
+    probe_func = MagicMock(
+        return_value={"duration": 10.0, "video_resolution": "1920x1080", "fps": 30.0}
+    )
+    monkeypatch.setattr("src.worker.tasks.probe_video", probe_func)
     storage_mock = MagicMock()
     monkeypatch.setattr("src.worker.tasks.minio_storage", storage_mock)
     monkeypatch.setattr("src.worker.tasks.session_local_sync", sessionmaker_sync)
 
     process_video_task(
+        user_id=None,
+        file_name="test.mp4",
         file_path=(tmp_path / "test.mp4"),
         camera_id=camera.id,
         video_storage_key="test/test.mp4",
@@ -56,6 +62,10 @@ def worker_env(engine_sync, db_session_sync, create_camera_sync, monkeypatch):
 
     first_frame_func = MagicMock()
     monkeypatch.setattr("src.worker.tasks.extract_first_frame", first_frame_func)
+    probe_func = MagicMock(
+        return_value={"duration": 10.0, "video_resolution": "1920x1080", "fps": 30.0}
+    )
+    monkeypatch.setattr("src.worker.tasks.probe_video", probe_func)
     storage_mock = MagicMock()
     monkeypatch.setattr("src.worker.tasks.minio_storage", storage_mock)
     monkeypatch.setattr("src.worker.tasks.session_local_sync", sessionmaker_sync)
@@ -70,6 +80,8 @@ def test_process_video_error_extracting(worker_env, tmp_path):
 
     with pytest.raises(Exception, match="Test error"):
         process_video_task(
+            user_id=None,
+            file_name="test.mp4",
             file_path=(tmp_path / "test.mp4"),
             camera_id=camera.id,
             video_storage_key="test/test.mp4",
@@ -92,6 +104,8 @@ def test_process_video_error_uploading(worker_env, tmp_path):
 
     with pytest.raises(Exception, match="Test Error"):
         process_video_task(
+            user_id=None,
+            file_name="test.mp4",
             file_path=(tmp_path / "test.mp4"),
             camera_id=camera.id,
             video_storage_key="test/test.mp4",
@@ -117,6 +131,8 @@ def test_process_video_file_deleting(worker_env, tmp_path):
     preview_file.write_bytes(b"test")
 
     process_video_task(
+        user_id=None,
+        file_name="test.mp4",
         file_path=str(video_file),
         camera_id=camera.id,
         video_storage_key="test/test.mp4",
