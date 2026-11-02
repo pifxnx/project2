@@ -1,6 +1,7 @@
 import pytest
 from src.data.models.video import VideoStatus
 from src.domain.exceptions.video_exceptions import VideoNotFoundException
+from src.schemas.video import VideoFilters
 
 
 async def test_get_video_by_id_success(
@@ -208,3 +209,68 @@ async def test_video_service_invalidate_cache(
     await video_service.delete_video(video.id)
 
     cache.delete.assert_called_once()
+
+
+async def test_get_video_filters_author(
+    get_video_service_mock_storage, create_camera, create_video, create_user
+):
+    camera_data = {
+        "camera_id": "cam-00001",
+        "camera_name": "Камера 1",
+        "camera_latitude": 55.75,
+        "camera_longitude": 37.6,
+        "azimuth": 90,
+    }
+
+    camera = await create_camera(camera_data)
+
+    user_data = {
+        "email": "email",
+        "fullname": "fullname",
+        "hashed_password": "hashed_password",
+    }
+    user = await create_user(user_data)
+
+    video_data = {
+        "camera_id": camera.id,
+        "name": "test.mp4",
+        "video_storage_key": "test_video.mp4",
+        "preview_storage_key": "test_video.jpg",
+        "status": VideoStatus.success,
+        "user_id": user.id,
+    }
+
+    video = await create_video(video_data)
+    video_service = get_video_service_mock_storage
+
+    videos = await video_service.get_all_videos(VideoFilters(author="ullna"))
+
+    assert len(videos) == 1
+    assert videos[0].author == user.fullname
+
+
+async def test_get_video_filters_no_author(
+    get_video_service_mock_storage, create_camera, create_video
+):
+    camera_data = {
+        "camera_id": "cam-00001",
+        "camera_name": "Камера 1",
+        "camera_latitude": 55.75,
+        "camera_longitude": 37.6,
+        "azimuth": 90,
+    }
+
+    camera = await create_camera(camera_data)
+
+    video_data = {
+        "camera_id": camera.id,
+        "name": "test.mp4",
+        "video_storage_key": "test_video.mp4",
+        "preview_storage_key": "test_video.jpg",
+        "status": VideoStatus.success,
+    }
+
+    video_service = get_video_service_mock_storage
+    videos = await video_service.get_all_videos(VideoFilters(author="ullna"))
+
+    assert len(videos) == 0

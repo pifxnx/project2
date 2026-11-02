@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from fastapi import UploadFile
 from rq.job import Dependency
 from redis.exceptions import RedisError
-from ...schemas.video import VideoResponse
+from ...schemas.video import VideoResponse, VideoFilters, VideoListItem
 from ...data.repositories.video_repo import VideoRepo
 from ...data.models.video import Video
 from ...core.storage import MinioStorage
@@ -34,6 +34,23 @@ class VideoService:
             video_url=self.storage.get_presigned_url(video.video_storage_key),
             preview_url=self.storage.get_presigned_url(video.preview_storage_key),
         )
+
+    def _to_response_video_items(self, videos: list[Video]) -> list[VideoListItem]:
+        return [
+            VideoListItem(
+                id=video.id,
+                name=video.name,
+                duration=video.duration,
+                video_resolution=video.video_resolution,
+                fps=video.fps,
+                time_of_day=video.time_of_day,
+                uploaded_at=video.created_at,
+                author=video.user.fullname if video.user else None,
+                video_url=self.storage.get_presigned_url(video.video_storage_key),
+                preview_url=self.storage.get_presigned_url(video.preview_storage_key),
+            )
+            for video in videos
+        ]
 
     async def get_video_by_id(self, video_id: int) -> VideoResponse:
         video = await self.repository.get_video_by_id(video_id)
@@ -121,3 +138,10 @@ class VideoService:
             "message": "Video upload initiated",
             "jobs_info": jobs_info,
         }
+
+    async def get_all_videos(self, filters: VideoFilters):
+        videos = await self.repository.get_all_videos(filters)
+
+        res = await asyncio.to_thread(self._to_response_video_items, videos)
+
+        return res

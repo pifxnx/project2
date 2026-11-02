@@ -1,9 +1,8 @@
-from fastapi import APIRouter, UploadFile, Depends, status
-from uuid import UUID, uuid4
-from pathlib import Path
-from ..schemas.video import VideoResponse
+from fastapi import APIRouter, UploadFile, Depends, status, Query
+from uuid import UUID
+from typing import Annotated
+from ..schemas.video import VideoResponse, VideoFilters, VideoListItem
 from ..core.dependencies import get_video_service, get_camera_service, get_current_user
-from ..core.config import settings
 
 
 router = APIRouter(tags=["videos"])
@@ -17,6 +16,17 @@ async def get_videos_by_camera(
 ):
     await camera_service.get_camera_by_id(camera_id)
     videos = await video_service.get_videos_by_camera_id(camera_id)
+
+    return videos
+
+
+@router.get("/videos", response_model=list[VideoListItem])
+async def get_all_videos(
+    filters: Annotated[VideoFilters, Query()],
+    video_service=Depends(get_video_service),
+    user=Depends(get_current_user),
+):
+    videos = await video_service.get_all_videos(filters)
 
     return videos
 

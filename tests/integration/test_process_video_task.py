@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
 from src.worker.tasks import process_video_task
 from src.data.models.video import Video, VideoStatus
+from src.worker.tasks import geojson_key
 
 
 def test_processing_video(
@@ -46,6 +47,9 @@ def test_processing_video(
     assert storage_mock.upload_file.call_count == 2
     assert video is not None
     assert video.status == VideoStatus.success
+    assert video.duration == 10.0
+    assert video.video_resolution == "1920x1080"
+    assert video.fps == 30.0
 
 
 @pytest.fixture
@@ -141,3 +145,66 @@ def test_process_video_file_deleting(worker_env, tmp_path):
 
     assert not video_file.exists()
     assert not preview_file.exists()
+
+
+def test_process_video_failed_status_failed(worker_env):
+    camera, first_frame_func, storage_mock, sessionmaker = worker_env
+
+    storage_mock.upload_file.side_effect = Exception("Test Error")
+
+    with pytest.raises(Exception, match="Test Error"):
+        process_video_task(
+            user_id=None,
+            file_name="test.mp4",
+            file_path="test.mp4",
+            camera_id=camera.id,
+            video_storage_key="test/test.mp4",
+            preview_storage_key="test/test.jpg",
+        )
+
+    with sessionmaker() as session:
+        stmt = select(Video).where(Video.camera_id == camera.id)
+        video = session.execute(stmt).scalar_one_or_none()
+
+    assert video.status == VideoStatus.failed
+
+
+@pytest.fixture
+def mock_invalidate_cache(monkeypatch):
+    mock_invalidate = MagicMock()
+    monkeypatch.setattr("src.worker.tasks.invalidate_cache_sync", mock_invalidate)
+
+    return mock_invalidate
+
+
+def test_process_video_cache_invalidating(worker_env, mock_invalidate_cache):
+    camera, first_frame_func, storage_mock, sessionmaker = worker_env
+
+    process_video_task(
+        user_id=None,
+        file_name="test.mp4",
+        file_path="test.mp4",
+        camera_id=camera.id,
+        video_storage_key="test/test.mp4",
+        preview_storage_key="test/test.jpg",
+    )
+
+    mock_invalidate_cache.assert_called_once_with(geojson_key)
+
+
+def test_process_video_cache_not_invalidating(worker_env, mock_invalidate_cache):
+    camera, first_frame_func, storage_mock, sessionmaker = worker_env
+
+    storage_mock.upload_file.side_effect = Exception("Test Error")
+
+    with pytest.raises(Exception, match="Test Error"):
+        process_video_task(
+            user_id=None,
+            file_name="test.mp4",
+            file_path="test.mp4",
+            camera_id=camera.id,
+            video_storage_key="test/test.mp4",
+            preview_storage_key="test/test.jpg",
+        )
+
+    mock_invalidate_cache.assert_not_called()
