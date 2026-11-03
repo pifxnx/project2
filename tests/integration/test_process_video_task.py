@@ -2,9 +2,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 from src.worker.tasks import process_video_task
 from src.data.models.video import Video, VideoStatus
-from src.worker.tasks import geojson_key
+from src.worker.tasks import geojson_key, get_time_of_day
 
 
 def test_processing_video(
@@ -50,6 +51,9 @@ def test_processing_video(
     assert video.duration == 10.0
     assert video.video_resolution == "1920x1080"
     assert video.fps == 30.0
+    assert video.time_of_day == get_time_of_day(
+        video.created_at.astimezone(ZoneInfo("Europe/Moscow")).hour
+    )
 
 
 @pytest.fixture
