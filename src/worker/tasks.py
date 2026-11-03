@@ -3,10 +3,26 @@ import json
 from pathlib import Path
 from uuid import UUID
 from redis.exceptions import RedisError
+from zoneinfo import ZoneInfo
+from rq.job import Dependency, Job, JobStatus
+from rq.exceptions import NoSuchJobError
+from .worker_queue import redis_conn_queue as redis
+from .worker_queue import q
 from ..core.storage import minio_storage
 from ..core.database import session_local_sync
-from ..data.models.video import Video, VideoStatus
+from ..data.models.video import Video, VideoStatus, TimeOfDay
 from ..core.cache import invalidate_cache_sync, geojson_key
+
+
+def get_time_of_day(hour: int) -> TimeOfDay:
+    if 4 <= hour < 12:
+        return TimeOfDay.morning
+    elif 12 <= hour < 18:
+        return TimeOfDay.day
+    elif 18 <= hour <= 23:
+        return TimeOfDay.evening
+    else:
+        return TimeOfDay.night
 
 
 def probe_video(video_path: str) -> dict:
@@ -105,6 +121,9 @@ def process_video_task(
                 video.fps = probe["fps"]
                 video.status = VideoStatus.success
                 video.name = f"{video.id}_{video.name}"
+                video.time_of_day = get_time_of_day(
+                    video.created_at.astimezone(ZoneInfo("Europe/Moscow")).hour
+                )
                 session.commit()
 
                 try:
@@ -115,3 +134,42 @@ def process_video_task(
     finally:
         Path(file_path).unlink(missing_ok=True)
         Path(preview_file_path).unlink(missing_ok=True)
+
+
+def enqueue_upload(
+    user_id, file_name, file_path, camera_id, video_storage_key, preview_storage_key
+):
+    key = f"user:{user_id}:last_upload"
+
+    with redis.lock(f"{key}:lock", timeout=5):
+        dep = None
+        prev_id = redis.get(key)
+        if prev_id:
+            prev_id = prev_id.decode()
+            try:
+                prev = Job.fetch(prev_id, connection=redis)
+                if prev.get_status() not in (
+                    JobStatus.FINISHED,
+                    JobStatus.FAILED,
+                    JobStatus.STOPPED,
+                    JobStatus.CANCELED,
+                ):
+                    dep = Dependency(jobs=[prev], allow_failure=True)
+
+            except NoSuchJobError:
+                pass
+
+        job = q.enqueue(
+            process_video_task,
+            user_id=user_id,
+            file_name=file_name,
+            file_path=file_path,
+            camera_id=camera_id,
+            video_storage_key=video_storage_key,
+            preview_storage_key=preview_storage_key,
+            depends_on=dep,
+        )
+
+        redis.set(key, job.id, ex=60 * 60 * 3)
+
+        return job

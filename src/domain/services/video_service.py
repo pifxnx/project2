@@ -12,7 +12,7 @@ from ..exceptions.video_exceptions import (
     VideoNotFoundException,
     InvalidVideoFormatException,
 )
-from ...worker.tasks import process_video_task
+from ...worker.tasks import enqueue_upload
 from ...worker.worker_queue import q
 from ...core.config import settings
 from ...core.cache import Cache, geojson_key
@@ -98,7 +98,6 @@ class VideoService:
             file_names.append(file_name)
 
         jobs_info = []
-        prev_job = None
         for file, name in zip(files, file_names):
             file_path = f"{settings.upload_dir}/{uuid4()}"
 
@@ -111,20 +110,14 @@ class VideoService:
                 while chunk := await file.read(1024 * 1024):
                     await out_file.write(chunk)
 
-            job = q.enqueue(
-                process_video_task,
-                user_id=user_id,
+            job = enqueue_upload(
+                user_id,
                 file_name=name,
                 file_path=file_path,
                 camera_id=camera_id,
                 video_storage_key=video_storage_key,
                 preview_storage_key=preview_storage_key,
-                depends_on=Dependency([prev_job], allow_failure=True)
-                if prev_job
-                else None,
             )
-
-            prev_job = job.id
 
             jobs_info.append(
                 {
