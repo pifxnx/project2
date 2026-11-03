@@ -44,6 +44,8 @@ class VideoRepo:
     async def get_all_videos(self, filters: VideoFilters):
         stmt = select(Video).options(selectinload(Video.user))
 
+        if filters.user_id is not None:
+            stmt = stmt.where(Video.user_id == filters.user_id)
         if filters.author is not None:
             stmt = stmt.join(User, Video.user_id == User.id).where(
                 User.fullname.ilike(f"%{filters.author}%")
