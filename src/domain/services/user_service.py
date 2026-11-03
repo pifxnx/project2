@@ -35,4 +35,4 @@ class UserService:
         if not user:
             raise UserNotFoundException()
 
-        return UserResponse.model_validate(user)
+        return user
