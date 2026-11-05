@@ -1,7 +1,8 @@
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from uuid import UUID
 from datetime import datetime
-from ..data.models.video import TimeOfDay
+from typing import Literal
+from ..data.models.video import TimeOfDay, VideoStatus
 
 
 class VideoBase(BaseModel):
@@ -16,16 +17,20 @@ class VideoResponse(VideoBase):
 
 
 class VideoFilters(BaseModel):
+    camera_id: UUID | None = None
     uploaded_from: datetime | None = None
     uploaded_to: datetime | None = None
     duration_from: float | None = None
     duration_to: float | None = None
-    time_of_day: TimeOfDay | None = None
-    user_id: int | None = None
+    time_of_day: list[TimeOfDay] | None = None
+    user_id: list[int] | None = None
     author: str | None = None
     name: str | None = None
-    limit: int = Field(20, ge=1, le=100)
+    status: list[VideoStatus] | None = None
+    limit: int = Field(20, ge=1, le=200)
     offset: int = Field(0, ge=0)
+    sort: Literal["created_at", "duration", "name"] = "created_at"
+    order: Literal["asc", "desc"] = "desc"
 
     @model_validator(mode="after")
     def validate_dates(self):
@@ -57,3 +62,14 @@ class VideoListItem(BaseModel):
     author: str | None
     video_url: str
     preview_url: str
+    status: VideoStatus
+    email: str | None
+
+
+class VideoListItemsPage(BaseModel):
+    items: list[VideoListItem]
+    total: int
+
+
+class VideoDetail(VideoListItem):
+    camera_id: UUID

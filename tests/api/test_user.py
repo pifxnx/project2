@@ -38,10 +38,10 @@ async def test_get_me_videos(client, create_camera, create_video, create_user):
     )
 
     assert r.status_code == 200
-    assert len(r.json()) == 1
+    assert len(r.json()["items"]) == 1
 
     token2 = "Bearer " + create_access_token(str(user2.id))
     r = await client.get("/users/me/videos", headers={"Authorization": token2})
 
     assert r.status_code == 200
-    assert len(r.json()) == 0
+    assert len(r.json()["items"]) == 0

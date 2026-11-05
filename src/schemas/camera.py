@@ -26,19 +26,30 @@ class CameraCreate(CameraBase):
 class CameraResponse(CameraBase):
     id: UUID  # идентификатор камеры
     camera_id: str  # номер камеры
+    camera_name: str | None  # название камеры
+    camera_place: str | None  # адрес
+    model: str | None  # модель
+    camera_type: str | None  # тип камеры
+    camera_class: str | None  # класс камеры
     camera_latitude: float  # широта
     camera_longitude: float  # долгота
     archive: bool  # признак архивной записи
     azimuth: int  # азимут
 
 
+class CameraFilterOptions(BaseModel):
+    models: list[str]
+    types: list[str]
+    classes: list[str]
+
+
 class CameraFilters(BaseModel):
     camera_name: str | None = None
     min_videos_count: int | None = None
     max_videos_count: int | None = None
-    camera_model: str | None = None
-    camera_type: str | None = None
-    camera_class: str | None = None
+    camera_model: list[str] | None = None
+    camera_type: list[str] | None = None
+    camera_class: list[str] | None = None
 
     @model_validator(mode="after")
     def validate_videos_count(self):

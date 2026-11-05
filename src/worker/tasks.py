@@ -168,6 +168,7 @@ def enqueue_upload(
             video_storage_key=video_storage_key,
             preview_storage_key=preview_storage_key,
             depends_on=dep,
+            result_ttl=60 * 60,
         )
 
         redis.set(key, job.id, ex=60 * 60 * 3)

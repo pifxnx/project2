@@ -1,11 +1,18 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, Select, func
 from sqlalchemy.orm import selectinload
 from ..models.video import Video, VideoStatus
 from ..models.user import User
 from ...schemas.video import VideoFilters
+
+
+sort_column = {
+    "created_at": Video.created_at,
+    "duration": Video.duration,
+    "name": Video.name,
+}
 
 
 class VideoRepo:
@@ -23,7 +30,9 @@ class VideoRepo:
             raise
 
     async def get_video_by_id(self, video_id: int) -> Video | None:
-        video = await self.session.get(Video, video_id)
+        video = await self.session.get(
+            Video, video_id, options=[selectinload(Video.user)]
+        )
 
         return video
 
@@ -41,11 +50,11 @@ class VideoRepo:
         await self.session.delete(video)
         await self.session.commit()
 
-    async def get_all_videos(self, filters: VideoFilters):
-        stmt = select(Video).options(selectinload(Video.user))
-
-        if filters.user_id is not None:
-            stmt = stmt.where(Video.user_id == filters.user_id)
+    async def _apply_filters(self, filters: VideoFilters, stmt: Select):
+        if filters.user_id:
+            stmt = stmt.where(Video.user_id.in_(filters.user_id))
+        if filters.camera_id is not None:
+            stmt = stmt.where(Video.camera_id == filters.camera_id)
         if filters.author is not None:
             stmt = stmt.join(User, Video.user_id == User.id).where(
                 User.fullname.ilike(f"%{filters.author}%")
@@ -58,20 +67,37 @@ class VideoRepo:
             stmt = stmt.where(Video.duration >= filters.duration_from)
         if filters.duration_to is not None:
             stmt = stmt.where(Video.duration <= filters.duration_to)
-        if filters.time_of_day is not None:
-            stmt = stmt.where(Video.time_of_day == filters.time_of_day)
-        if filters.user_id is not None:
-            stmt = stmt.where(Video.user_id == filters.user_id)
+        if filters.time_of_day:
+            stmt = stmt.where(Video.time_of_day.in_(filters.time_of_day))
         if filters.name is not None:
             stmt = stmt.where(Video.name.ilike(f"%{filters.name}%"))
+        if filters.status:
+            stmt = stmt.where(Video.status.in_(filters.status))
+
+        return stmt
+
+    async def get_all_videos(self, filters: VideoFilters):
+
+        stmt = select(Video).options(selectinload(Video.user))
+        stmt = await self._apply_filters(filters, stmt)
+
+        column = sort_column[filters.sort]
+        direction = column.desc() if filters.order == "desc" else column.asc()
         stmt = (
-            stmt.limit(filters.limit)
+            stmt.order_by(direction, Video.id)
             .offset(filters.offset)
-            .order_by(Video.created_at.desc())
+            .limit(filters.limit)
         )
 
         result = await self.session.execute(stmt)
 
         videos = result.scalars().all()
 
-        return list(videos)
+        stmt = select(func.count()).select_from(Video)
+        stmt = await self._apply_filters(filters, stmt)
+
+        result = await self.session.execute(stmt)
+
+        total = result.scalar_one()
+
+        return list(videos), total

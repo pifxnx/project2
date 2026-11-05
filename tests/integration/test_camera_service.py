@@ -170,7 +170,7 @@ async def test_get_cameras_filtered(
     matching, other = await create_diff_cameras({db_field: "X"}, create_camera)
     camera_service = get_camera_service
 
-    cameras = await camera_service.get_all_cameras(CameraFilters(**{filter_field: "X"}))
+    cameras = await camera_service.get_all_cameras(CameraFilters(**{filter_field: ["X"]}))
 
     assert len(cameras) == 1
     assert cameras[0].id == matching.id

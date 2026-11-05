@@ -245,8 +245,10 @@ async def test_get_video_filters_author(
 
     videos = await video_service.get_all_videos(VideoFilters(author="ullna"))
 
-    assert len(videos) == 1
-    assert videos[0].author == user.fullname
+    assert len(videos.items) == 1
+    assert videos.items[0].author == user.fullname
+    assert videos.items[0].email == user.email
+    assert videos.items[0].status == VideoStatus.success
 
 
 async def test_get_video_filters_no_author(
@@ -273,4 +275,4 @@ async def test_get_video_filters_no_author(
     video_service = get_video_service_mock_storage
     videos = await video_service.get_all_videos(VideoFilters(author="ullna"))
 
-    assert len(videos) == 0
+    assert len(videos.items) == 0

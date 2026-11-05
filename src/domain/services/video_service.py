@@ -2,9 +2,14 @@ import asyncio
 import aiofiles
 from uuid import UUID, uuid4
 from fastapi import UploadFile
-from rq.job import Dependency
 from redis.exceptions import RedisError
-from ...schemas.video import VideoResponse, VideoFilters, VideoListItem
+from ...schemas.video import (
+    VideoResponse,
+    VideoFilters,
+    VideoListItem,
+    VideoListItemsPage,
+    VideoDetail,
+)
 from ...data.repositories.video_repo import VideoRepo
 from ...data.models.video import Video
 from ...core.storage import MinioStorage
@@ -13,7 +18,6 @@ from ..exceptions.video_exceptions import (
     InvalidVideoFormatException,
 )
 from ...worker.tasks import enqueue_upload
-from ...worker.worker_queue import q
 from ...core.config import settings
 from ...core.cache import Cache, geojson_key
 
@@ -48,17 +52,36 @@ class VideoService:
                 author=video.user.fullname if video.user else None,
                 video_url=self.storage.get_presigned_url(video.video_storage_key),
                 preview_url=self.storage.get_presigned_url(video.preview_storage_key),
+                status=video.status,
+                email=video.user.email if video.user else None,
             )
             for video in videos
         ]
 
-    async def get_video_by_id(self, video_id: int) -> VideoResponse:
+    def _to_response_video_detail(self, video: Video) -> VideoDetail:
+        return VideoDetail(
+            camera_id=video.camera_id,
+            id=video.id,
+            name=video.name,
+            duration=video.duration,
+            video_resolution=video.video_resolution,
+            fps=video.fps,
+            time_of_day=video.time_of_day,
+            uploaded_at=video.created_at,
+            author=video.user.fullname if video.user else None,
+            video_url=self.storage.get_presigned_url(video.video_storage_key),
+            preview_url=self.storage.get_presigned_url(video.preview_storage_key),
+            status=video.status,
+            email=video.user.email if video.user else None,
+        )
+
+    async def get_video_by_id(self, video_id: int) -> VideoDetail:
         video = await self.repository.get_video_by_id(video_id)
 
         if not video:
             raise VideoNotFoundException(video_id)
 
-        res = await asyncio.to_thread(self._to_response, video)
+        res = await asyncio.to_thread(self._to_response_video_detail, video)
 
         return res
 
@@ -133,8 +156,8 @@ class VideoService:
         }
 
     async def get_all_videos(self, filters: VideoFilters):
-        videos = await self.repository.get_all_videos(filters)
+        videos, total = await self.repository.get_all_videos(filters)
 
-        res = await asyncio.to_thread(self._to_response_video_items, videos)
+        videos = await asyncio.to_thread(self._to_response_video_items, videos)
 
-        return res
+        return VideoListItemsPage(items=videos, total=total)

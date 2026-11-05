@@ -45,6 +45,19 @@ class CameraRepo:
 
         return camera
 
+    async def _get_distinct_values(self, column) -> list[str]:
+        stmt = select(column).where(column.is_not(None)).distinct().order_by(column)
+        result = await self.session.execute(stmt)
+
+        return list(result.scalars().all())
+
+    async def get_filter_options(self) -> dict[str, list[str]]:
+        return {
+            "models": await self._get_distinct_values(Camera.model),
+            "types": await self._get_distinct_values(Camera.camera_type),
+            "classes": await self._get_distinct_values(Camera.camera_class),
+        }
+
     async def get_all_cameras(self, filters: CameraFilters):
         stmt = select(Camera)
 
@@ -61,12 +74,12 @@ class CameraRepo:
 
         if filters.camera_name is not None:
             stmt = stmt.where(Camera.camera_name.ilike(f"%{filters.camera_name}%"))
-        if filters.camera_model is not None:
-            stmt = stmt.where(Camera.model == filters.camera_model)
-        if filters.camera_type is not None:
-            stmt = stmt.where(Camera.camera_type == filters.camera_type)
-        if filters.camera_class is not None:
-            stmt = stmt.where(Camera.camera_class == filters.camera_class)
+        if filters.camera_model:
+            stmt = stmt.where(Camera.model.in_(filters.camera_model))
+        if filters.camera_type:
+            stmt = stmt.where(Camera.camera_type.in_(filters.camera_type))
+        if filters.camera_class:
+            stmt = stmt.where(Camera.camera_class.in_(filters.camera_class))
 
         result = await self.session.execute(stmt)
 

@@ -1,7 +1,13 @@
 from fastapi import APIRouter, UploadFile, Depends, status, Query
 from uuid import UUID
 from typing import Annotated
-from ..schemas.video import VideoResponse, VideoFilters, VideoListItem
+from ..schemas.video import (
+    VideoResponse,
+    VideoFilters,
+    VideoListItem,
+    VideoListItemsPage,
+    VideoDetail,
+)
 from ..core.dependencies import get_video_service, get_camera_service, get_current_user
 
 
@@ -20,7 +26,7 @@ async def get_videos_by_camera(
     return videos
 
 
-@router.get("/videos", response_model=list[VideoListItem])
+@router.get("/videos", response_model=VideoListItemsPage)
 async def get_all_videos(
     filters: Annotated[VideoFilters, Query()],
     video_service=Depends(get_video_service),
@@ -31,8 +37,12 @@ async def get_all_videos(
     return videos
 
 
-@router.get("/videos/{video_id}", response_model=VideoResponse)
-async def get_video(video_id: int, video_service=Depends(get_video_service)):
+@router.get("/videos/{video_id}", response_model=VideoDetail)
+async def get_video(
+    video_id: int,
+    video_service=Depends(get_video_service),
+    user=Depends(get_current_user),
+):
     video = await video_service.get_video_by_id(video_id)
 
     return video

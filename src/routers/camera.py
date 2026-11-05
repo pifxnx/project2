@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, Query, status
 from typing import Annotated
 from ..core.dependencies import get_camera_service, get_current_user
-from ..schemas.camera import CameraFilters, CameraResponse, CameraCreate
+from ..schemas.camera import (
+    CameraFilters,
+    CameraResponse,
+    CameraCreate,
+    CameraFilterOptions,
+)
 from ..schemas.geo import FeatureCollection
 
 
@@ -17,6 +22,14 @@ async def get_cameras(
     cameras = await camera_service.get_all_cameras(filters)
 
     return cameras
+
+
+@router.get("/filters", response_model=CameraFilterOptions)
+async def get_camera_filter_options(
+    camera_service=Depends(get_camera_service),
+    user=Depends(get_current_user),
+):
+    return await camera_service.get_filter_options()
 
 
 @router.get("/geojson", response_model=FeatureCollection)
