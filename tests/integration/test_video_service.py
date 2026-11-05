@@ -75,7 +75,9 @@ async def test_delete_video(
 
     await video_service.delete_video(video.id)
 
-    storage.delete_file.assert_called_once_with(video.video_storage_key)
+    assert storage.delete_file.call_count == 2
+    storage.delete_file.assert_any_call(video.video_storage_key)
+    storage.delete_file.assert_any_call(video.preview_storage_key)
 
     with pytest.raises(VideoNotFoundException):
         await video_service.get_video_by_id(video.id)

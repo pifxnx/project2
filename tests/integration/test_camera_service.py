@@ -1,4 +1,5 @@
 import pytest
+from uuid import uuid4
 from src.domain.exceptions.camera_exceptions import (
     CameraNotFoundException,
     CameraAlreadyExistsException,
@@ -240,7 +241,9 @@ async def test_geojson_cache_hit(get_camera_service, mock_cache):
     cached = FeatureCollection(
         features=[
             Feature(
-                properties=Properties(has_video=False, camera_id="cam-00001"),
+                properties=Properties(
+                    id=uuid4(), has_video=False, camera_id="cam-00001"
+                ),
                 geometry=Geometry(coordinates=[55.75, 37.6]),
             )
         ]

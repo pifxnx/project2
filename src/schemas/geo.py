@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Literal
+from uuid import UUID
 from ..data.models.camera import Camera
 
 
@@ -9,6 +10,7 @@ class Geometry(BaseModel):
 
 
 class Properties(BaseModel):
+    id: UUID
     camera_id: str
     has_video: bool
 
@@ -28,7 +30,9 @@ def build_feature_collection(rows: list[tuple[Camera, bool]]) -> FeatureCollecti
     return FeatureCollection(
         features=[
             Feature(
-                properties=Properties(has_video=row[1], camera_id=row[0].camera_id),
+                properties=Properties(
+                    id=row[0].id, has_video=row[1], camera_id=row[0].camera_id
+                ),
                 geometry=Geometry(
                     coordinates=[row[0].camera_longitude, row[0].camera_latitude]
                 ),

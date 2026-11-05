@@ -120,7 +120,6 @@ def process_video_task(
                 video.video_resolution = probe["video_resolution"]
                 video.fps = probe["fps"]
                 video.status = VideoStatus.success
-                video.name = f"{video.id}_{video.name}"
                 video.time_of_day = get_time_of_day(
                     video.created_at.astimezone(ZoneInfo("Europe/Moscow")).hour
                 )

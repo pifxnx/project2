@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     minio_access_key: str
     minio_secret_key: str
     minio_secure: bool
+    minio_public_endpoint: str | None = None
     redis_url: str
     upload_dir: str
     cors_origins: list[str]

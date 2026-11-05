@@ -11,6 +11,19 @@ class MinioStorage:
             secret_key=settings.minio_secret_key,
             secure=settings.minio_secure,
         )
+        # Ссылки отдаются браузеру, поэтому подписывать их нужно публичным адресом
+        # (в docker-сети внутренний адрес minio:9000 браузеру недоступен).
+        # Регион задан явно, чтобы подпись не делала сетевой запрос к MinIO.
+        if settings.minio_public_endpoint:
+            self.public_client = minio.Minio(
+                endpoint=settings.minio_public_endpoint,
+                access_key=settings.minio_access_key,
+                secret_key=settings.minio_secret_key,
+                secure=settings.minio_secure,
+                region="us-east-1",
+            )
+        else:
+            self.public_client = self.client
 
     def upload_file(self, file_path: str, object_name: str, bucket_name: str = "video"):
         self.client.fput_object(bucket_name, object_name, file_path)
@@ -21,7 +34,7 @@ class MinioStorage:
     def get_presigned_url(
         self, object_name: str, bucket_name: str = "video", expires: int = 3600
     ):
-        url = self.client.presigned_get_object(
+        url = self.public_client.presigned_get_object(
             bucket_name, object_name, expires=timedelta(seconds=expires)
         )
 

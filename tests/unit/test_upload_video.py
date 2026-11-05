@@ -18,10 +18,13 @@ def upload_dir(monkeypatch, tmp_path):
     return tmp_path
 
 
-def make_file(filename, content=b"test"):
+MP4_HEADER = b"\x00\x00\x00\x18ftypmp42"
+
+
+def make_file(filename, content=MP4_HEADER + b"test"):
     mock_file = AsyncMock()
     mock_file.filename = filename
-    mock_file.read.side_effect = [content, b""]
+    mock_file.read.side_effect = [content[:12], content, b""]
     return mock_file
 
 
@@ -69,7 +72,9 @@ async def test_upload_video_success(
     video_service = get_video_service_mock_storage
 
     res = await video_service.upload_video(
-        user_id=1, camera_id="test123", files=[make_file("test.mp4", b"video-data")]
+        user_id=1,
+        camera_id="test123",
+        files=[make_file("test.mp4", MP4_HEADER + b"video-data")],
     )
 
     mock_enqueue.assert_called_once()
@@ -80,7 +85,7 @@ async def test_upload_video_success(
     assert kwargs["video_storage_key"].endswith(".mp4")
     assert kwargs["preview_storage_key"].endswith(".jpg")
     with open(kwargs["file_path"], "rb") as f:
-        assert f.read() == b"video-data"
+        assert f.read() == MP4_HEADER + b"video-data"
 
     assert len(res["jobs_info"]) == 1
     assert res["jobs_info"][0]["job_id"] == "1"

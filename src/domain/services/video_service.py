@@ -105,7 +105,11 @@ class VideoService:
         except RedisError:
             pass
 
-        await asyncio.to_thread(self.storage.delete_file, video.video_storage_key)
+        for storage_key in (video.video_storage_key, video.preview_storage_key):
+            try:
+                await asyncio.to_thread(self.storage.delete_file, storage_key)
+            except Exception:
+                pass
 
     async def upload_video(
         self,
@@ -118,6 +122,12 @@ class VideoService:
             file_name = file.filename
             if not file_name or file_name.split(".")[-1].lower() != "mp4":
                 raise InvalidVideoFormatException(file_name)
+
+            header = await file.read(12)
+            await file.seek(0)
+            if header[4:8] != b"ftyp":
+                raise InvalidVideoFormatException(file_name)
+
             file_names.append(file_name)
 
         jobs_info = []
