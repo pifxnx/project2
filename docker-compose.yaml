@@ -1,0 +1,160 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - uploads:/tmp/uploads
+    environment:
+      - DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/project2
+      - DB_URL_SYNC=postgresql+psycopg://postgres:postgres@db:5432/project2
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - MINIO_PUBLIC_ENDPOINT=localhost:9000
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build: .
+    environment:
+      - DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/project2
+      - DB_URL_SYNC=postgresql+psycopg://postgres:postgres@db:5432/project2
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+      - uploads:/tmp/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: rq worker --url redis://redis:6379/0
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: project2
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/project2
+      - DB_URL_SYNC=postgresql+psycopg://postgres:postgres@db:5432/project2
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - REDIS_URL=redis://redis:6379/0
+    command: alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - DB_URL=postgresql+asyncpg://postgres:postgres@db:5432/project2
+      - DB_URL_SYNC=postgresql+psycopg://postgres:postgres@db:5432/project2
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - REDIS_URL=redis://redis:6379/0
+    command: python -m src.scripts.add_cameras
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+
+  test_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test_project2
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: scnd/minio-mirror:RELEASE.2025-09-07T16-13-09Z
+    ports:
+      - "9000:9000"  
+      - "9001:9001"  
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+
+  rq-dashboard:
+    image: eoranged/rq-dashboard
+    environment:
+      RQ_DASHBOARD_REDIS_URL: redis://redis:6379/0
+    ports:
+      - "9181:9181"
+    depends_on:
+      - redis
+
+volumes:
+  pgdata:
+  minio_data:
+  uploads:

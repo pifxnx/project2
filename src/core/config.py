@@ -1,0 +1,27 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    db_url: str
+    db_url_sync: str
+    token_exp: int
+    token_secret: str
+    token_algorithm: str
+    refresh_secret: str
+    refresh_exp: int
+    minio_endpoint: str
+    minio_access_key: str
+    minio_secret_key: str
+    minio_secure: bool
+    minio_public_endpoint: str | None = None
+    redis_url: str
+    upload_dir: str
+    cors_origins: list[str]
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
+
+
+settings = Settings()
