@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     minio_secure: bool
     redis_url: str
     upload_dir: str
+    cors_origins: list[str]
 
     model_config = SettingsConfigDict(
         env_file=".env",

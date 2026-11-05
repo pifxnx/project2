@@ -18,6 +18,19 @@ class UserRepo:
 
         return result.scalars().one_or_none()
 
+    async def get_users(
+        self, search: str | None, limit: int, offset: int
+    ) -> list[User]:
+        stmt = select(User)
+
+        if search:
+            stmt = stmt.where(User.fullname.ilike(f"%{search}%"))
+
+        stmt = stmt.order_by(User.fullname, User.id).limit(limit).offset(offset)
+        result = await self.session.execute(stmt)
+
+        return list(result.scalars().all())
+
     async def create_user(self, user: User):
         try:
             self.session.add(user)

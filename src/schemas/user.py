@@ -12,6 +12,12 @@ class UserCreate(UserBase):
     organization: str | None = None
 
 
+class UserListItem(UserBase):
+    id: int
+    fullname: str
+    email: EmailStr
+
+
 class UserResponse(UserBase):
     fullname: str
     email: EmailStr

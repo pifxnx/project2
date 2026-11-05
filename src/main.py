@@ -9,6 +9,7 @@ from .routers.video import router as video_router
 from .routers.job import router as job_router
 from .core.exceptions import AppException
 from .core.storage import minio_storage
+from .core.config import settings
 
 
 @asynccontextmanager
@@ -22,7 +23,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
